@@ -81,7 +81,8 @@ class PillWidget(QWidget):
         screen = QApplication.primaryScreen()
         if screen:
             geo = screen.availableGeometry()
-            x = geo.center().x() - int(self._current_width) // 2
+            # Anchor left edge so expansion always goes right
+            x = geo.center().x() - PILL_WIDTH_IDLE // 2
             y = geo.bottom() - 4 - PILL_HEIGHT
             self.move(x, y)
 
@@ -160,10 +161,10 @@ class PillWidget(QWidget):
         else:
             self._current_width += diff * 0.22
 
-        old_center = self.geometry().center()
+        # Anchor left edge: logo stays fixed, expansion goes right
+        left_x = self.x()
         self.setFixedWidth(int(self._current_width))
-        new_x = old_center.x() - int(self._current_width) // 2
-        self.move(new_x, self.y())
+        self.move(left_x, self.y())
         self._layout_children()
         self.update()
 
