@@ -30,6 +30,7 @@ load_dotenv(os.path.join(_DATA_DIR, ".env"))
 # Groq API
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL = "whisper-large-v3-turbo"
+WHISPER_LANGUAGE = "es"  # Explicit language for accurate accents (é, ó, ñ, etc.)
 
 # Audio
 SAMPLE_RATE = 16000

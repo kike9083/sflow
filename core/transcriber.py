@@ -1,7 +1,7 @@
 import io
 import os
 from groq import Groq
-from config import GROQ_MODEL
+from config import GROQ_MODEL, WHISPER_LANGUAGE
 
 
 class Transcriber:
@@ -26,6 +26,7 @@ class Transcriber:
         transcription = self._get_client().audio.transcriptions.create(
             file=("recording.wav", data),
             model=GROQ_MODEL,
+            language=WHISPER_LANGUAGE,
             response_format="text",
             temperature=0.0,
         )
