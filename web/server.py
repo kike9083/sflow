@@ -1,3 +1,4 @@
+import socket
 import threading
 from flask import Flask, jsonify, render_template_string
 from db.database import TranscriptionDB
@@ -165,8 +166,22 @@ def get_transcriptions():
     return jsonify(db.get_recent(limit=200))
 
 
-def start_web_server(port: int = 5000):
+def _find_free_port(start: int = 5678, attempts: int = 10) -> int:
+    """Find an available port starting from `start`."""
+    for port in range(start, start + attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("127.0.0.1", port))
+                return port
+            except OSError:
+                continue
+    return start  # fallback
+
+
+def start_web_server(port: int = None) -> int:
     """Start Flask in a daemon thread so it doesn't block the Qt event loop."""
+    if port is None:
+        port = _find_free_port()
     thread = threading.Thread(
         target=lambda: app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False),
         daemon=True,

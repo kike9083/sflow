@@ -9,9 +9,41 @@ _saved_hwnd: int | None = None
 
 
 def save_frontmost_app():
+<<<<<<< HEAD
     """Save the currently focused window before recording starts."""
     global _saved_hwnd
     if _is_windows:
+=======
+    """Save the currently focused application before recording starts."""
+    global _saved_app
+    try:
+        result = subprocess.run(
+            ["osascript", "-e",
+             'tell application "System Events" to get name of first process whose frontmost is true'],
+            capture_output=True, text=True, timeout=2,
+        )
+        name = result.stdout.strip()
+        if name and name != "SFlow":
+            _saved_app = name
+    except Exception:
+        pass
+
+
+def paste_text(text: str):
+    """Copy text to clipboard and paste into the previously active app."""
+    global _saved_app
+    # Copy to clipboard via NSPasteboard (avoids encoding issues in .app bundles)
+    try:
+        from AppKit import NSPasteboard, NSPasteboardTypeString
+        pb = NSPasteboard.generalPasteboard()
+        pb.clearContents()
+        pb.setString_forType_(text, NSPasteboardTypeString)
+    except Exception:
+        subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=True)
+
+    # Restore focus to the app that was active before recording
+    if _saved_app:
+>>>>>>> afca4a0f540933bb2a6e27a7d55bd14aa419107c
         try:
             user32 = ctypes.windll.user32
             _saved_hwnd = user32.GetForegroundWindow()

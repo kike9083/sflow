@@ -81,8 +81,9 @@ class PillWidget(QWidget):
         screen = QApplication.primaryScreen()
         if screen:
             geo = screen.availableGeometry()
-            x = geo.center().x() - int(self._current_width) // 2
-            y = geo.bottom() - PILL_MARGIN_BOTTOM - PILL_HEIGHT
+            # Anchor left edge so expansion always goes right
+            x = geo.center().x() - PILL_WIDTH_IDLE // 2
+            y = geo.bottom() - 4 - PILL_HEIGHT
             self.move(x, y)
 
     def _setup_native_window(self):
@@ -170,10 +171,10 @@ class PillWidget(QWidget):
         else:
             self._current_width += diff * 0.22
 
-        old_center = self.geometry().center()
+        # Anchor left edge: logo stays fixed, expansion goes right
+        left_x = self.x()
         self.setFixedWidth(int(self._current_width))
-        new_x = old_center.x() - int(self._current_width) // 2
-        self.move(new_x, self.y())
+        self.move(left_x, self.y())
         self._layout_children()
         self.update()
 
@@ -184,7 +185,7 @@ class PillWidget(QWidget):
         logo_area = logo_pad + LOGO_SIZE + 4
         content_w = w - logo_area - 4
         if content_w > 0 and self.visualizer.isVisible():
-            self.visualizer.setGeometry(logo_area, 5, content_w, h - 10)
+            self.visualizer.setGeometry(logo_area, 2, content_w, h - 4)
 
     def paintEvent(self, event):
         painter = QPainter(self)

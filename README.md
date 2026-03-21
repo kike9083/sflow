@@ -26,14 +26,16 @@ Built as a replacement for [Wispr Flow](https://wispr.com) ($15/month). SFlow us
 
 ### Features
 
+- **Native macOS app** — lives in the menu bar, no terminal needed, starts with your Mac
 - **System-wide dictation** — works in any app (VS Code, Chrome, Slack, Notes, etc.)
 - **Two recording modes** — hold Ctrl+Shift (push-to-talk) or double-tap Ctrl (hands-free)
 - **Floating pill UI** — minimal overlay with real-time audio visualization bars
 - **No focus stealing** — pill floats above everything without interrupting your work (native macOS APIs)
 - **Auto-paste** — text appears exactly where your cursor was
-- **Web dashboard** — browse, search, and copy transcription history at `localhost:5000`
+- **Web dashboard** — browse, search, and copy transcription history at `localhost:5678`
 - **SQLite history** — every transcription saved locally with timestamp and duration
 - **Multilingual** — supports all languages Whisper supports (English, Spanish, French, etc.)
+- **First-run setup** — asks for your Groq API key on first launch, no config files to edit
 
 ---
 
@@ -46,7 +48,7 @@ Built as a replacement for [Wispr Flow](https://wispr.com) ($15/month). SFlow us
 - [Homebrew](https://brew.sh)
 - [Groq API key](https://console.groq.com/keys) (free tier available)
 
-### Install
+### Install (Desktop App — Recommended)
 
 ```bash
 # Clone
@@ -61,23 +63,28 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Configuration
+# Build the .app
+bash build.sh
+
+# Install (IMPORTANT: use ditto, not cp -r)
+ditto dist/SFlow.app /Applications/SFlow.app
+xattr -cr /Applications/SFlow.app
+```
+
+Open SFlow from Spotlight or `/Applications`. On first launch it asks for your [Groq API key](https://console.groq.com/keys).
+
+### Install (Dev Mode)
+
+```bash
+git clone https://github.com/daniel-carreon/sflow.git
+cd sflow
+brew install portaudio
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 cp .env.example .env
 # Edit .env and paste your GROQ_API_KEY
-```
-
-### Run
-
-```bash
-source venv/bin/activate
 python3 main.py
-```
-
-### Optional: Shell alias
-
-Add to your `~/.zshrc`:
-```bash
-alias sflow='cd /path/to/sflow && source venv/bin/activate && python3 main.py'
 ```
 
 ---
@@ -88,8 +95,9 @@ alias sflow='cd /path/to/sflow && source venv/bin/activate && python3 main.py'
 |--------|----------|
 | **Push-to-talk** | Hold `Ctrl+Shift`, speak, release |
 | **Hands-free** | Double-tap `Ctrl` to start, tap `Ctrl` to stop |
-| **View history** | Open `http://localhost:5000` |
-| **Quit** | `Ctrl+C` in terminal |
+| **View history** | Click "Abrir Dashboard" in menu bar, or `http://localhost:5678` |
+| **Start with macOS** | Toggle in menu bar → "Iniciar con macOS" |
+| **Quit** | Menu bar → "Salir" (or `Ctrl+C` in dev mode) |
 
 ### Pill States
 
@@ -192,7 +200,9 @@ GROQ_MODEL = "whisper-large-v3-turbo"  # fastest Groq model
 | Audio not captured | Check Microphone permissions + `brew list portaudio` |
 | Paste goes to wrong app | This is the focus-steal issue — ensure PyObjC native setup works |
 | Ctrl+C doesn't quit | Should work out of the box (SIGINT handler). Try `kill %1` |
-| Dashboard not loading | Check port 5000: `lsof -i :5000` |
+| Dashboard not loading | Port auto-selects from 5678: `lsof -i :5678` |
+| .app crashes (segfault) | Reinstall with `ditto` (not `cp -r`): `ditto dist/SFlow.app /Applications/SFlow.app` |
+| .app blocked by macOS | Remove quarantine: `xattr -cr /Applications/SFlow.app` |
 
 ---
 
