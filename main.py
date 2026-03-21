@@ -48,7 +48,7 @@ class SFlowApp(QObject):
         self.hotkey.start()
         self.pill.show()
         self.pill.set_state(PillWidget.STATE_IDLE)
-        print("SFlow running. Ctrl+Shift (hold) or Ctrl-Ctrl (hands-free). Ctrl+C to quit.")
+        print("SFlow running. Ctrl+Shift (hold) or Shift-Shift (hands-free toggle). Ctrl+C to quit.")
 
     @pyqtSlot()
     def _on_hotkey_pressed(self):

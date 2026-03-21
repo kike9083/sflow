@@ -1,7 +1,5 @@
 import math
-from ctypes import c_void_p
-import AppKit
-import objc
+import platform
 from PyQt6.QtWidgets import QWidget, QApplication
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QPainter, QColor, QPainterPath, QPen, QPixmap
@@ -17,6 +15,8 @@ from config import (
     LOGO_SIZE,
     LOGO_PATH,
 )
+
+_is_windows = platform.system() == "Windows"
 
 
 class PillWidget(QWidget):
@@ -85,30 +85,40 @@ class PillWidget(QWidget):
             y = geo.bottom() - PILL_MARGIN_BOTTOM - PILL_HEIGHT
             self.move(x, y)
 
-    def _setup_native_macos(self):
-        """Configure native macOS window to float above everything without stealing focus."""
-        ns_view = objc.objc_object(c_void_p=c_void_p(self.winId().__int__()))
-        ns_window = ns_view.window()
-        # Float above all normal windows (like Spotlight does)
-        ns_window.setLevel_(AppKit.NSFloatingWindowLevel)
-        # Never steal focus
-        ns_window.setStyleMask_(ns_window.styleMask() | AppKit.NSWindowStyleMaskNonactivatingPanel)
-        # Don't hide when app loses focus
-        ns_window.setHidesOnDeactivate_(False)
-        # Visible on all Spaces/desktops
-        ns_window.setCollectionBehavior_(
-            AppKit.NSWindowCollectionBehaviorCanJoinAllSpaces
-            | AppKit.NSWindowCollectionBehaviorStationary
-            | AppKit.NSWindowCollectionBehaviorFullScreenAuxiliary
-        )
+    def _setup_native_window(self):
+        """Configure native window to float above everything without stealing focus."""
+        if _is_windows:
+            import ctypes
+            # Get the actual HWND of this widget
+            hwnd = self.winId().__int__()
+            if hwnd:
+                # GWL_EXSTYLE = -20
+                # WS_EX_TOPMOST = 0x00000008
+                # WS_EX_NOACTIVATE = 0x08000000
+                ex_style = ctypes.windll.user32.GetWindowLongW(hwnd, -20)
+                ctypes.windll.user32.SetWindowLongW(hwnd, -20, ex_style | 0x08000000 | 0x00000008)
+        else:
+            from ctypes import c_void_p
+            import AppKit
+            import objc
+            ns_view = objc.objc_object(c_void_p=c_void_p(self.winId().__int__()))
+            ns_window = ns_view.window()
+            ns_window.setLevel_(AppKit.NSFloatingWindowLevel)
+            ns_window.setStyleMask_(ns_window.styleMask() | AppKit.NSWindowStyleMaskNonactivatingPanel)
+            ns_window.setHidesOnDeactivate_(False)
+            ns_window.setCollectionBehavior_(
+                AppKit.NSWindowCollectionBehaviorCanJoinAllSpaces
+                | AppKit.NSWindowCollectionBehaviorStationary
+                | AppKit.NSWindowCollectionBehaviorFullScreenAuxiliary
+            )
 
     def showEvent(self, event):
-        """Called when the widget is first shown. Sets up native macOS properties."""
+        """Called when the widget is first shown. Sets up native properties."""
         super().showEvent(event)
         try:
-            self._setup_native_macos()
+            self._setup_native_window()
         except Exception as e:
-            print(f"Warning: native macOS setup failed: {e}")
+            print(f"Warning: native window setup failed: {e}")
 
     def set_state(self, state: str):
         self._state = state
