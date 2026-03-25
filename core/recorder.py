@@ -48,6 +48,16 @@ class AudioRecorder:
             self.stream.stop()
             self.stream.close()
             self.stream = None
+        
+        # Debug volume
+        if self.frames:
+            audio_data = np.concatenate(self.frames, axis=0)
+            peak = np.max(np.abs(audio_data))
+            avg = np.mean(np.abs(audio_data))
+            print(f"Audio detenido. Frames: {len(self.frames)}, Volume Peak: {peak}, Avg: {avg:.1f}")
+        else:
+            print("Audio detenido. No se capturaron frames.")
+            
         return duration
 
     def get_wav_buffer(self) -> io.BytesIO:

@@ -46,7 +46,7 @@ class HotkeyListener(QObject):
         is_ctrl = key in (keyboard.Key.ctrl_l, keyboard.Key.ctrl_r)
         is_shift = key in (keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r)
 
-        # 1. Track Shift and detect double-tap (Hands-free TOGGLE: START/STOP)
+        # 1. Track Shift and detect double-tap (Hands-free: START)
         if is_shift:
             self._shift_held = True
             now = time.time()
@@ -56,17 +56,13 @@ class HotkeyListener(QObject):
                 self._shift_tap_count = 1
             self._last_shift_press = now
 
-            # Toggle hands-free mode: double-tap Shift starts OR stops
+            # Hands-free mode: double-tap Shift starts
             if self._shift_tap_count >= 2:
                 self._shift_tap_count = 0
                 if not self._recording:
                     self._hands_free = True
                     self._recording = True
                     self.pressed.emit()
-                else:
-                    self._hands_free = False
-                    self._recording = False
-                    self.released.emit()
                 return
 
         # 2. Track Ctrl (used for Hold mode together with Shift)
@@ -84,6 +80,14 @@ class HotkeyListener(QObject):
     def _on_release(self, key):
         is_ctrl = key in (keyboard.Key.ctrl_l, keyboard.Key.ctrl_r)
         is_shift = key in (keyboard.Key.shift, keyboard.Key.shift_l, keyboard.Key.shift_r)
+        is_esc = key == keyboard.Key.esc
+
+        # Esc release stops hands-free mode
+        if is_esc and self._recording and self._hands_free:
+            self._hands_free = False
+            self._recording = False
+            self.released.emit()
+            return
 
         if is_ctrl:
             self._ctrl_held = False

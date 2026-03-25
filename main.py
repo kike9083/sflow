@@ -225,10 +225,13 @@ class SFlowApp(QObject):
         try:
             text = self.transcriber.transcribe(wav_buffer)
             if text:
+                print(f"Transcripción ({duration:.1f}s): {text}")
                 self.transcription_done.emit(text, duration)
             else:
+                print("Transcripción vacía")
                 self.transcription_error.emit("No speech detected")
         except Exception as e:
+            print(f"Error en transcripción: {e}")
             self.transcription_error.emit(str(e))
 
     @pyqtSlot(str, float)

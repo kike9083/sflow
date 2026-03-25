@@ -13,9 +13,24 @@ def save_frontmost_app():
     global _saved_hwnd
     if _is_windows:
         try:
+            import ctypes
             user32 = ctypes.windll.user32
-            _saved_hwnd = user32.GetForegroundWindow()
-        except Exception:
+            hwnd = user32.GetForegroundWindow()
+            
+            # Get window title to verify we aren't saving SFlow itself
+            length = user32.GetWindowTextLengthW(hwnd)
+            buff = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buff, length + 1)
+            title = buff.value
+            
+            if title == "SFlow" or not title:
+                # If we accidentally caught SFlow or an empty title, don't overwrite a potentially good saved handle
+                return
+
+            print(f"Objetivo de pegado detectado: {title}")
+            _saved_hwnd = hwnd
+        except Exception as e:
+            print(f"Error al guardar ventana: {e}")
             _saved_hwnd = None
     else:
         try:
@@ -43,31 +58,34 @@ def _paste_text_windows(text: str):
     global _saved_hwnd
 
     import pyperclip
+    from pynput.keyboard import Controller, Key
+    
+    # Copy to clipboard
     pyperclip.copy(text)
-
-    # user32 constants
-    VK_CONTROL = 0x11
-    VK_V = 0x56
-    KEYEVENTF_KEYUP = 0x0002
-
-    def keybd_event(vk, scan, flags, extra):
-        ctypes.windll.user32.keybd_event(vk, scan, flags, extra)
+    time.sleep(0.1)
 
     if _saved_hwnd:
         try:
-            user32 = ctypes.windll.user32
-            # Set focus and ensure it's on top
-            user32.SetForegroundWindow(_saved_hwnd)
-        except Exception:
+            import ctypes
+            # Restore the previously active window
+            print(f"Restaurando foco a ventana con handle: {_saved_hwnd}")
+            ctypes.windll.user32.SetForegroundWindow(_saved_hwnd)
+            time.sleep(0.3)  # Give Windows more time to switch back
+        except Exception as e:
+            print(f"Error al restaurar foco: {e}")
             pass
-        time.sleep(0.1)
 
-    # Perform Ctrl+V using native key events (very reliable)
-    keybd_event(VK_CONTROL, 0, 0, 0)      # Ctrl down
-    keybd_event(VK_V, 0, 0, 0)            # V down
-    time.sleep(0.02)
-    keybd_event(VK_V, 0, KEYEVENTF_KEYUP, 0)       # V up
-    keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, 0) # Ctrl up
+    # Perform Ctrl+V using pynput Controller
+    print(f"Simulando Ctrl+V para pegar: {text[:20]}...")
+    keyboard_controller = Controller()
+    
+    # Safety: ensure everything is released before paste
+    keyboard_controller.release(Key.shift)
+    keyboard_controller.release(Key.ctrl)
+    
+    # Robust paste: Ctrl down, V tap, Ctrl up
+    with keyboard_controller.pressed(Key.ctrl):
+        keyboard_controller.tap('v')
 
     _saved_hwnd = None
 
