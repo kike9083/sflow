@@ -3,10 +3,28 @@
 
 import os
 import sys
+import platform
+
+# Redirect stdout/stderr on Windows pythonw before importing any other modules
+# so that pynput/sounddevice don't crash when trying to access sys.stdout.
+if platform.system() == "Windows" and sys.stdout is None:
+    # We must construct APP_DATA_DIR manually here or import it 
+    # but importing it might import other things. Let's do it safely:
+    # config.py does not have heavy imports, we can import APP_DATA_DIR.
+    from config import APP_DATA_DIR
+    os.makedirs(APP_DATA_DIR, exist_ok=True)
+    log_file = open(os.path.join(APP_DATA_DIR, "sflow_debug.log"), "a", encoding="utf-8", buffering=1)
+    sys.stdout = log_file
+    sys.stderr = log_file
+    print("\\n--- INICIANDO SFLOW ---")
+else:
+    from config import APP_DATA_DIR
+    os.makedirs(APP_DATA_DIR, exist_ok=True)
+
+from config import LOGO_PATH, GROQ_API_KEY
 import signal
 import subprocess
 import threading
-import platform
 from PyQt6.QtWidgets import (
     QApplication, QSystemTrayIcon, QMenu,
     QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox,
@@ -21,14 +39,6 @@ from core.hotkey import HotkeyListener
 from core.clipboard import paste_text, save_frontmost_app
 from db.database import TranscriptionDB
 from web.server import start_web_server
-from config import LOGO_PATH, APP_DATA_DIR, GROQ_API_KEY
-
-os.makedirs(APP_DATA_DIR, exist_ok=True)
-if platform.system() == "Windows" and sys.stdout is None:
-    log_file = open(os.path.join(APP_DATA_DIR, "sflow_debug.log"), "a", encoding="utf-8")
-    sys.stdout = log_file
-    sys.stderr = log_file
-    print("\\n--- INICIANDO SFLOW ---")
 
 def _ensure_accessibility() -> bool:
     """Prompt macOS to grant Accessibility if not trusted. Returns True if already trusted."""
@@ -197,8 +207,14 @@ def _setup_tray(app: QApplication, port: int) -> QSystemTrayIcon:
     menu.addAction(login_action)
     menu.addSeparator()
 
+    def _force_quit():
+        import os
+        tray.hide()
+        # app.quit()  # Optional depending on how dirty it is
+        os._exit(0)
+
     quit_action = QAction("Salir", menu)
-    quit_action.triggered.connect(app.quit)
+    quit_action.triggered.connect(_force_quit)
     menu.addAction(quit_action)
 
     tray.setContextMenu(menu)
